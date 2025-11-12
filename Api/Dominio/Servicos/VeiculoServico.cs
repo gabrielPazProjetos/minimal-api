@@ -9,14 +9,15 @@ namespace MinimalApi.Dominio.Servicos;
 public class VeiculoServico : IVeiculoServico
 {
     private readonly DbContexto _contexto;
+
     public VeiculoServico(DbContexto contexto)
     {
         _contexto = contexto;
     }
 
-    public void Apagar(Veiculo veiculo)
+    public void Incluir(Veiculo veiculo)
     {
-        _contexto.Veiculos.Remove(veiculo);
+        _contexto.Veiculos.Add(veiculo);
         _contexto.SaveChanges();
     }
 
@@ -26,30 +27,34 @@ public class VeiculoServico : IVeiculoServico
         _contexto.SaveChanges();
     }
 
-    public Veiculo? BuscaPorId(int id)
+    public void Apagar(Veiculo veiculo)
     {
-        return _contexto.Veiculos.Where(v => v.Id == id).FirstOrDefault();
+        _contexto.Veiculos.Remove(veiculo);
+        _contexto.SaveChanges();
     }
 
-    public void Incluir(Veiculo veiculo)
+    public Veiculo? BuscaPorId(int id)
     {
-        _contexto.Veiculos.Add(veiculo);
-        _contexto.SaveChanges();
+        return _contexto.Veiculos.FirstOrDefault(v => v.Id == id);
     }
 
     public List<Veiculo> Todos(int? pagina = 1, string? nome = null, string? marca = null)
     {
         var query = _contexto.Veiculos.AsQueryable();
-        if(!string.IsNullOrEmpty(nome))
-        {
-            query = query.Where(v => EF.Functions.Like(v.Nome.ToLower(), $"%{nome}%"));
-        }
+
+        if (!string.IsNullOrEmpty(nome))
+            query = query.Where(v => EF.Functions.Like(v.Nome.ToLower(), $"%{nome.ToLower()}%"));
+
+        if (!string.IsNullOrEmpty(marca))
+            query = query.Where(v => EF.Functions.Like(v.Marca.ToLower(), $"%{marca.ToLower()}%"));
 
         int itensPorPagina = 10;
+        int paginaAtual = pagina ?? 1;
 
-        if(pagina != null)
-            query = query.Skip(((int)pagina - 1) * itensPorPagina).Take(itensPorPagina);
-
-        return query.ToList();
+        return query
+            .OrderBy(v => v.Id)
+            .Skip((paginaAtual - 1) * itensPorPagina)
+            .Take(itensPorPagina)
+            .ToList();
     }
 }
