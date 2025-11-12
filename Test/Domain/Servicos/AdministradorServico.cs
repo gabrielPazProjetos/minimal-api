@@ -1,71 +1,45 @@
-using System.Reflection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using MinimalApi.Dominio.Entidades;
-using MinimalApi.Dominio.Servicos;
+using MinimalApi.Dominio.Interfaces;
+using MinimalApi.DTOs;
 using MinimalApi.Infraestrutura.Db;
 
-namespace Test.Domain.Entidades;
+namespace MinimalApi.Dominio.Servicos;
 
-[TestClass]
-public class AdministradorServicoTest
+public class AdministradorServico : IAdministradorServico
 {
-    private DbContexto CriarContextoDeTeste()
+    private readonly DbContexto _contexto;
+
+    public AdministradorServico(DbContexto contexto)
     {
-        var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var path = Path.GetFullPath(Path.Combine(assemblyPath ?? "", "..", "..", ".."));
-
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(path ?? Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables();
-
-        var configuration = builder.Build();
-
-        return new DbContexto(configuration);
+        _contexto = contexto;
     }
 
-
-    [TestMethod]
-    public void TestandoSalvarAdministrador()
+    public Administrador? Login(LoginDTO loginDTO)
     {
-        // Arrange
-        var context = CriarContextoDeTeste();
-        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Administradores");
-
-        var adm = new Administrador();
-        adm.Email = "teste@teste.com";
-        adm.Senha = "teste";
-        adm.Perfil = "Adm";
-
-        var administradorServico = new AdministradorServico(context);
-
-        // Act
-        administradorServico.Incluir(adm);
-
-        // Assert
-        Assert.AreEqual(1, administradorServico.Todos(1).Count());
+        return _contexto.Administradores
+            .FirstOrDefault(a => a.Email == loginDTO.Email && a.Senha == loginDTO.Senha);
     }
 
-    [TestMethod]
-    public void TestandoBuscaPorId()
+    public void Incluir(Administrador administrador)
     {
-        // Arrange
-        var context = CriarContextoDeTeste();
-        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Administradores");
+        _contexto.Administradores.Add(administrador);
+        _contexto.SaveChanges();
+    }
 
-        var adm = new Administrador();
-        adm.Email = "teste@teste.com";
-        adm.Senha = "teste";
-        adm.Perfil = "Adm";
+    public IEnumerable<Administrador> Todos(int? pagina)
+    {
+        int tamanhoPagina = 10;
+        int numeroPagina = pagina ?? 1;
 
-        var administradorServico = new AdministradorServico(context);
+        return _contexto.Administradores
+            .OrderBy(a => a.Id)
+            .Skip((numeroPagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToList();
+    }
 
-        // Act
-        administradorServico.Incluir(adm);
-        var admDoBanco = administradorServico.BuscaPorId(adm.Id);
-
-        // Assert
-        Assert.AreEqual(1, admDoBanco?.Id);
+    public Administrador? BuscaPorId(int id)
+    {
+        return _contexto.Administradores.FirstOrDefault(a => a.Id == id);
     }
 }
