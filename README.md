@@ -1,4 +1,4 @@
---- Minimal API - CRUD com Autenticação JWT
+--- Minimal API - CRUD com Autenticação JWT (FORK)
 Este projeto é uma API minimalista em ASP.NET Core que implementa autenticação via JWT, validação de dados e operações CRUD para veículos e administradores.
 
 --- Tecnologias Utilizadas
